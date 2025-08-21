@@ -16,20 +16,14 @@ export default [
       entryFileNames: "code/content/[name].js",
     },
     plugins: [
-      /* removes `output` directory */
-      {
-        name: "remove-output-directory",
-        buildStart() {
-          removeOutputDirectory();
-        },
-      },
-      typescript(),
-      isProduction && terser,
-      /* copies all files to output, but only once on `npm run watch` */
+      removeOutputDirectory,
+      /* copies all files from src to output, but only once on `npm run watch` */
       copy({
         targets: [{ src: ["src/**/*", "!**/*/code"], dest: "output" }],
         flatten: false,
       }),
+      typescript(),
+      isProduction && terser,
     ],
   },
   {
