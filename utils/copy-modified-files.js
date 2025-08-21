@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 
+copyModifiedFiles();
+
 export default function copyModifiedFiles() {
   const fileTypes = /.*(?<!\.ts|~)$/; // match file names that do not end with `.ts`, `~` (temporary files created by IDE editor)
   const outputDir = "output";

@@ -1,10 +1,8 @@
 import typescript from "rollup-plugin-typescript2";
 import copy from "rollup-plugin-copy";
-import copyModifiedFiles from "./rollup-plugins/copy-modified-files.js";
 import removeOutputDirectory from "./rollup-plugins/remove-output-directory.js";
 import getTerser from "./rollup-plugins/terser.js";
 
-const isDevelopment = process.env.NODE_ENV === "development";
 const isProduction = process.env.NODE_ENV === "production";
 
 const terser = getTerser();
@@ -32,17 +30,6 @@ export default [
         targets: [{ src: ["src/**/*", "!**/*/code"], dest: "output" }],
         flatten: false,
       }),
-      ...(isDevelopment
-        ? [
-            /* copies all non .ts files from `src` to `output` in real time when modified */
-            {
-              name: "copy-modified-files",
-              buildStart() {
-                copyModifiedFiles();
-              },
-            },
-          ]
-        : []),
     ],
   },
   {
