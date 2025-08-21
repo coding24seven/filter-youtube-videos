@@ -10,6 +10,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
     "@types/firefox-webext-browser": "^120.0.4",
     "prettier": "^3.6.2",
     "rollup": "^4.46.2",
