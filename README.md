@@ -1,0 +1,31 @@
+# Hide Watched YouTube Videos
+
+A lightweight browser extension that automatically hides watched YouTube videos from channel pages (@channelname), keeping your YouTube channel feeds fresh and uncluttered.
+
+## Features
+- Hides videos marked as "watched" on YouTube channel pages.
+- Works on pages with URLs containing @channelname.
+- Simple, fast, and no configuration needed.
+
+## Installation
+1. Download the extension from the [Firefox Add-ons](#) (links TBD).
+2. Add the extension to your browser.
+3. Enjoy a cleaner YouTube experience!
+
+## Permissions
+- Access to YouTube channel pages (`https://www.youtube.com/@*`) to detect and hide watched videos.
+- No data collection or external requests.
+
+## Development
+- Clone this repository.
+- Load the extension in your browser:
+    - Chrome: Go to `chrome://extensions/`, enable "Developer mode," and select "Load unpacked."
+    - Firefox: Go to `about:debugging#/runtime/this-firefox` and select "Load Temporary Add-on."
+- Modify `src/manifest.json` and other files as needed.
+- Use Rollup for building (see `rollup.config.js`).
+
+## License
+MIT License
+
+## Feedback
+Report issues or suggest features on [GitHub Issues](https://github.com/your-repo/hide-watched-youtube-videos/issues).

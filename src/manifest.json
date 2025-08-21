@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "Hide Watched YouTube Videos",
+  "version": "1.0",
+  "description": "Hides watched YouTube videos using UI indicators.",
+  "permissions": ["tabs", "activeTab", "storage"],
+  "background": {
+    "scripts": ["code/background/index.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["code/content/index.js"]
+    }
+  ],
+  "icons": {
+    "48": "media/icons/extension-is-disabled.png"
+  },
+  "browser_action": {
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "outDir": "./",
+    "rootDir": "./",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": false,
+    "removeComments": true,
+    "strict": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["./src"],
+  "exclude": ["node_modules"]
+}
