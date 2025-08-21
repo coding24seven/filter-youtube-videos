@@ -1,16 +1,6 @@
-import { isExtensionEnabled, sendMessage, updateIcon } from "../utils";
+import { isExtensionEnabled, update } from "../utils";
 
-interface UpdateStateProperties {
-  extensionIsEnabled?: boolean;
-  tabUrl?: string;
-}
-
-function update({ extensionIsEnabled, tabUrl }: UpdateStateProperties) {
-  if (extensionIsEnabled !== undefined) {
-    void sendMessage({ extensionIsEnabled });
-    void updateIcon({ extensionIsEnabled, tabUrl });
-  }
-}
+console.log("background script running");
 
 // Update when the active tab changes
 browser.tabs.onActivated.addListener(async (info) => {
@@ -28,7 +18,7 @@ browser.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
 
 // Update when the storage state changes
 browser.storage.onChanged.addListener(async (changes, area) => {
-  console.log("onChanged, for storage.");
+  console.log("onChanged, for storage, changes:", changes);
   if (area === "local" && changes.extensionIsEnabled) {
     update({ extensionIsEnabled: changes.extensionIsEnabled.newValue });
   }

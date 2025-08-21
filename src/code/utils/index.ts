@@ -1,14 +1,12 @@
+import { YOUTUBE_PATH } from "../const";
+import {
+  MessagePayload,
+  UpdateIconProperties,
+  UpdateStateProperties,
+} from "../const/types";
+
 export async function isExtensionEnabled() {
   return !!(await browser.storage.local.get()).extensionIsEnabled;
-}
-
-interface MessagePayload {
-  extensionIsEnabled: boolean;
-}
-
-interface UpdateIconProperties {
-  extensionIsEnabled?: boolean;
-  tabUrl?: string;
 }
 
 export async function queryActiveTab() {
@@ -22,9 +20,18 @@ export async function queryActiveTab() {
 }
 
 export async function sendMessage(payload: MessagePayload) {
-  const activeBrowserTab = await queryActiveTab();
+  const activeTab = await queryActiveTab();
 
-  await browser.tabs.sendMessage(activeBrowserTab.id!, payload);
+  if (await shouldRunOnCurrentPage(activeTab.url)) {
+    await browser.tabs.sendMessage(activeTab.id!, payload);
+  }
+}
+
+export function update({ extensionIsEnabled, tabUrl }: UpdateStateProperties) {
+  if (extensionIsEnabled !== undefined) {
+    void sendMessage({ extensionIsEnabled });
+    void updateIcon({ extensionIsEnabled, tabUrl });
+  }
 }
 
 export async function updateIcon({
@@ -39,7 +46,7 @@ export async function updateIcon({
 }
 
 async function shouldRunOnCurrentPage(activeTabUrl: string | undefined) {
-  const youTubePath = "youtube.com/@";
+  const youTubePath = YOUTUBE_PATH;
 
   if (activeTabUrl) {
     return !!activeTabUrl?.includes(youTubePath);
