@@ -18,7 +18,7 @@ async function main() {
   });
 
   const extensionIsEnabled = await isExtensionEnabled();
-  const enableText = "Hide Unwanted Videos";
+  const enableText = "Filter Out Unwanted Videos";
   const disableText = "Show All Videos";
 
   toggleFilterButton.textContent = extensionIsEnabled

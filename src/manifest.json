@@ -1,8 +1,8 @@
 {
   "manifest_version": 2,
-  "name": "Hide Watched YouTube Videos",
+  "name": "Filter YouTube Videos",
   "version": "1.0",
-  "description": "Hides watched YouTube videos using UI indicators.",
+  "description": "Hides unwanted YouTube videos using UI indicators.",
   "permissions": ["tabs", "activeTab", "storage"],
   "background": {
     "scripts": ["code/background/index.js"]

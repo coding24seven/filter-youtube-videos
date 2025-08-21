@@ -8,7 +8,7 @@ export interface FiltersState {
   membersOnlyFilterEnabled: boolean;
 }
 
-class Hide {
+class Filter {
   watchedFilterEnabled: boolean = true;
   membersOnlyFilterEnabled: boolean = true;
   allVideosContainerElement: HTMLElement | null = null;
@@ -224,4 +224,4 @@ class Hide {
   }
 }
 
-new Hide({ watchedFilterEnabled: true, membersOnlyFilterEnabled: true });
+new Filter({ watchedFilterEnabled: true, membersOnlyFilterEnabled: true });

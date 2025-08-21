@@ -1,5 +1,5 @@
 {
-  "name": "youtube-hide-watched",
+  "name": "filter-youtube-videos",
   "version": "1.0.0",
   "main": "index.ts",
   "type": "module",

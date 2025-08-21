@@ -1,9 +1,9 @@
-# Hide Watched YouTube Videos
+# Filter YouTube Videos
 
-A lightweight browser extension that automatically hides watched YouTube videos from channel pages (@channelname), keeping your YouTube channel feeds fresh and uncluttered.
+A lightweight browser extension that automatically filters YouTube videos from channel pages (@channelname), keeping your YouTube channel feeds fresh and uncluttered.
 
 ## Features
-- Hides videos marked as "watched" on YouTube channel pages.
+- Filters out videos marked as "watched" on YouTube channel pages.
 - Works on pages with URLs containing @channelname.
 - Simple, fast, and no configuration needed.
 
@@ -13,7 +13,7 @@ A lightweight browser extension that automatically hides watched YouTube videos 
 3. Enjoy a cleaner YouTube experience!
 
 ## Permissions
-- Access to YouTube channel pages (`https://www.youtube.com/@*`) to detect and hide watched videos.
+- Access to YouTube channel pages (`https://www.youtube.com/@*`) to detect and filter videos.
 - No data collection or external requests.
 
 ## Development
@@ -28,4 +28,4 @@ A lightweight browser extension that automatically hides watched YouTube videos 
 MIT License
 
 ## Feedback
-Report issues or suggest features on [GitHub Issues](https://github.com/your-repo/hide-watched-youtube-videos/issues).
+Report issues or suggest features on [GitHub Issues](https://github.com/your-repo/filter-youtube-videos/issues).
