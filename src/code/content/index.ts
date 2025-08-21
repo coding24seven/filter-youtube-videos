@@ -16,18 +16,26 @@ class Filter {
   singleVideoContainerElementTagName: string | undefined = "";
   videosHiddenCount = 0;
   url = "";
-  runExtension: any;
   observer: Observer | null = null;
-  observerEmittedNodeHandler: any; // todo: fix type
+  observerEmittedNodeHandler: (event: CustomEvent<{ node: Node }>) => void = (
+    event,
+  ) => {
+    this.processNode(event.detail.node);
+  };
+  ytNavigateFinishHandler: EventListener = (_event) => {};
 
   constructor(filtersState: FiltersState) {
     this.establishCommunicationWithExtensionToggle();
 
     isExtensionEnabled().then((isEnabled) => {
       if (isEnabled) {
-        window.addEventListener(youTubeEvents.ytNavigateFinish, () => {
+        this.ytNavigateFinishHandler = (_event) => {
           this.run(filtersState);
-        });
+        };
+        window.addEventListener(
+          youTubeEvents.ytNavigateFinish,
+          this.ytNavigateFinishHandler,
+        );
       }
     });
   }
@@ -65,13 +73,9 @@ class Filter {
     this.singleVideoContainerElementTagName =
       this.allVideosContainerElement.firstElementChild?.tagName;
 
-    this.observerEmittedNodeHandler = (event: CustomEvent<{ node: Node }>) => {
-      this.processNode(event.detail.node);
-    };
-
     this.allVideosContainerElement?.addEventListener(
       customEvents.observerEmittedNode,
-      this.observerEmittedNodeHandler,
+      this.observerEmittedNodeHandler as EventListener,
     );
 
     this.observer = new Observer(this.allVideosContainerElement);
@@ -87,13 +91,13 @@ class Filter {
 
     window.removeEventListener(
       youTubeEvents.ytNavigateFinish,
-      this.runExtension,
+      this.ytNavigateFinishHandler,
     );
 
     if (this.allVideosContainerElement) {
       this.allVideosContainerElement.removeEventListener(
         customEvents.observerEmittedNode,
-        this.observerEmittedNodeHandler,
+        this.observerEmittedNodeHandler as EventListener,
       );
     }
 
