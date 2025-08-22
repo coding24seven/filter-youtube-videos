@@ -22,7 +22,7 @@ export async function queryActiveTab() {
 export async function sendMessage(payload: MessagePayload) {
   const activeTab = await queryActiveTab();
 
-  if (await shouldRunOnCurrentPage(activeTab.url)) {
+  if (await extensionShouldRunOnCurrentPage(activeTab.url)) {
     await browser.tabs.sendMessage(activeTab.id!, payload);
   }
 }
@@ -39,13 +39,13 @@ export async function updateIcon({
   tabUrl,
 }: UpdateIconProperties) {
   const iconPath =
-    extensionIsEnabled && (await shouldRunOnCurrentPage(tabUrl))
+    extensionIsEnabled && (await extensionShouldRunOnCurrentPage(tabUrl))
       ? "media/icons/extension-is-enabled.png"
       : "media/icons/extension-is-disabled.png";
   void browser.browserAction.setIcon({ path: iconPath });
 }
 
-async function shouldRunOnCurrentPage(activeTabUrl: string | undefined) {
+export async function extensionShouldRunOnCurrentPage(activeTabUrl?: string) {
   const youTubePath = YOUTUBE_PATH;
 
   if (activeTabUrl) {

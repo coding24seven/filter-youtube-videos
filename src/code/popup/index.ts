@@ -1,37 +1,70 @@
-import { isExtensionEnabled } from "../utils";
+import { extensionShouldRunOnCurrentPage, isExtensionEnabled } from "../utils";
+import { selectors } from "./selectors";
 
 async function main() {
-  const toggleFilterButton = document.getElementById("toggleFilter");
+  const popupElement = await getPopupElement();
 
-  if (!toggleFilterButton) {
-    console.error("Toggle filter button not found in popup.html");
-    return;
+  if (popupElement?.matches(`#${selectors.toggleFilterButtonId}`)) {
+    await addEventListeners(popupElement);
   }
+}
+
+async function addEventListeners(buttonElement: HTMLElement) {
+  buttonElement.addEventListener("click", async () => {
+    await browser.storage.local.set({
+      extensionIsEnabled: !(await isExtensionEnabled()),
+    });
+  });
 
   // Update when the storage state changes
   browser.storage.onChanged.addListener(async (changes, area) => {
     if (area === "local" && changes.extensionIsEnabled) {
-      toggleFilterButton.textContent = changes.extensionIsEnabled.newValue
-        ? disableText
-        : enableText;
+      await setButtonText(buttonElement, changes.extensionIsEnabled.newValue);
     }
   });
+}
 
-  const extensionIsEnabled = await isExtensionEnabled();
-  const enableText = "Filter Out Unwanted Videos";
+async function getPopupElement() {
+  const toggleFilterButton = document.getElementById(
+    selectors.toggleFilterButtonId,
+  );
+  const extensionShouldNotRunElement = document.getElementById(
+    selectors.extensionShouldNotRunElementId,
+  );
+
+  if (!toggleFilterButton || !extensionShouldNotRunElement) {
+    console.error("required HTML elements not found in popup.html");
+
+    return;
+  }
+
+  if (await extensionShouldRunOnCurrentPage()) {
+    extensionShouldNotRunElement.style.display = "none";
+    await setButtonText(toggleFilterButton);
+
+    return toggleFilterButton;
+  } else {
+    toggleFilterButton.style.display = "none";
+
+    return extensionShouldNotRunElement;
+  }
+}
+
+async function setButtonText(
+  buttonElement: HTMLElement,
+  extensionIsEnabled?: boolean,
+) {
+  const enableText = "Hide Unwanted Videos";
   const disableText = "Show All Videos";
 
-  toggleFilterButton.textContent = extensionIsEnabled
-    ? disableText
-    : enableText;
-
-  toggleFilterButton.addEventListener("click", async () => {
-    const extensionIsEnabled = await isExtensionEnabled();
-
-    await browser.storage.local.set({
-      extensionIsEnabled: !extensionIsEnabled,
-    });
-  });
+  buttonElement.textContent =
+    typeof extensionIsEnabled === "boolean"
+      ? extensionIsEnabled
+        ? disableText
+        : enableText
+      : (await isExtensionEnabled())
+        ? disableText
+        : enableText;
 }
 
 void main();
