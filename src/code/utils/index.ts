@@ -1,57 +1,18 @@
-import { YOUTUBE_PATH } from "../const";
-import {
-  MessagePayload,
-  UpdateIconProperties,
-  UpdateStateProperties,
-} from "../const/types";
+import { YouTubePageTypes } from "../content/types";
 
-export async function isExtensionEnabled() {
-  return !!(await browser.storage.local.get()).extensionIsEnabled;
-}
+const { HomePage, WatchPage, VideosPage, StreamsPage } = YouTubePageTypes;
 
-export async function queryActiveTab() {
-  const browserTabs = await browser.tabs.query({
-    active: true, // only one tab (currently active one) is returned in []
-    currentWindow: true,
-  });
-  const [activeBrowserTab] = browserTabs;
+const youTubePageTypesRegex: Record<YouTubePageTypes, RegExp> = {
+  [HomePage]: /youtube\.com\/?$/,
+  [WatchPage]: /youtube\.com\/watch/,
+  [VideosPage]: /youtube\.com\/@.+\/videos/,
+  [StreamsPage]: /youtube\.com\/@.+\/streams/,
+};
 
-  return activeBrowserTab;
-}
+export function getCurrentPageType(url: string) {
+  const found = Object.entries(youTubePageTypesRegex).find(
+    ([_pageType, regExp]) => regExp.test(url),
+  );
 
-export async function sendMessage(payload: MessagePayload) {
-  const activeTab = await queryActiveTab();
-
-  if (await extensionShouldRunOnCurrentPage(activeTab.url)) {
-    await browser.tabs.sendMessage(activeTab.id!, payload);
-  }
-}
-
-export function update({ extensionIsEnabled, tabUrl }: UpdateStateProperties) {
-  if (extensionIsEnabled !== undefined) {
-    void sendMessage({ extensionIsEnabled });
-    void updateIcon({ extensionIsEnabled, tabUrl });
-  }
-}
-
-export async function updateIcon({
-  extensionIsEnabled,
-  tabUrl,
-}: UpdateIconProperties) {
-  const iconPath =
-    extensionIsEnabled && (await extensionShouldRunOnCurrentPage(tabUrl))
-      ? "media/icons/extension-is-enabled.png"
-      : "media/icons/extension-is-disabled.png";
-  void browser.browserAction.setIcon({ path: iconPath });
-}
-
-export async function extensionShouldRunOnCurrentPage(activeTabUrl?: string) {
-  const youTubePath = YOUTUBE_PATH;
-
-  if (activeTabUrl) {
-    return !!activeTabUrl?.includes(youTubePath);
-  } else {
-    const activeTab = await queryActiveTab();
-    return !!activeTab.url?.includes(youTubePath);
-  }
+  return found ? (found[0] as YouTubePageTypes) : null;
 }

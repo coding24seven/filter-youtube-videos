@@ -1,4 +1,4 @@
-import { isExtensionEnabled, update } from "../utils";
+import { isExtensionEnabled, update } from "../storage";
 
 console.log("background script running");
 

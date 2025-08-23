@@ -1,4 +1,7 @@
-import { extensionShouldRunOnCurrentPage, isExtensionEnabled } from "../utils";
+import {
+  extensionShouldRunOnCurrentPage,
+  isExtensionEnabled,
+} from "../storage";
 import { selectors } from "./selectors";
 
 async function main() {
@@ -38,13 +41,21 @@ async function getPopupElement() {
     return;
   }
 
+  console.log(
+    "await extensionShouldRunOnCurrentPage()",
+    await extensionShouldRunOnCurrentPage(),
+  );
+
   if (await extensionShouldRunOnCurrentPage()) {
     extensionShouldNotRunElement.style.display = "none";
+    toggleFilterButton.style.display = "block";
+
     await setButtonText(toggleFilterButton);
 
     return toggleFilterButton;
   } else {
     toggleFilterButton.style.display = "none";
+    extensionShouldNotRunElement.style.display = "block";
 
     return extensionShouldNotRunElement;
   }

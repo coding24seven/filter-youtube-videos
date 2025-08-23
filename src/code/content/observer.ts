@@ -1,5 +1,9 @@
 import { customEvents } from "./events";
 
+export interface EmittedNodeEventHandler {
+  (event: CustomEvent<{ node: Node }>): void;
+}
+
 export default class Observer {
   mutationObserver: MutationObserver;
   observerIsActive = false;
