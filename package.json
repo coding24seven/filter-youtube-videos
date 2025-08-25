@@ -6,7 +6,11 @@
   "scripts": {
     "start": "rollup -c",
     "build": "NODE_ENV=production rollup -c",
-    "watch": "NODE_ENV=development rollup -c -w & node utils/copy-modified-files.js",
+    "watch": "NODE_ENV=development rollup -c -w",
+    "prestart": "npm run clean",
+    "prebuild": "npm run clean",
+    "prewatch": "npm run clean && node utils/watch-copy-modified-files.js &",
+    "clean": "rm -rf output && mkdir output",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {

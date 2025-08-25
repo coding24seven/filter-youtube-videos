@@ -1,6 +1,5 @@
 import typescript from "rollup-plugin-typescript2";
 import copy from "rollup-plugin-copy";
-import removeOutputDirectory from "./rollup-plugins/remove-output-directory.js";
 import getTerser from "./rollup-plugins/terser.js";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -16,7 +15,6 @@ export default [
       entryFileNames: "code/content/[name].js",
     },
     plugins: [
-      removeOutputDirectory,
       /* copies all files from src to output, but only once on `npm run watch` */
       copy({
         targets: [{ src: ["src/**/*", "!**/*/code"], dest: "output" }],

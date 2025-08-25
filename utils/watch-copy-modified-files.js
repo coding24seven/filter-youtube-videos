@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-copyModifiedFiles();
+watchCopyModifiedFiles();
 
-export default function copyModifiedFiles() {
+function watchCopyModifiedFiles() {
   const fileTypes = /.*(?<!\.ts|~)$/; // match file names that do not end with `.ts`, `~` (temporary files created by IDE editor)
   const outputDir = "output";
   const debounceMap = new Map(); // Store timeouts for debouncing
@@ -13,7 +13,9 @@ export default function copyModifiedFiles() {
 
   fs.watch("src", { recursive: true }, (eventType, filePath) => {
     if (!filePath?.match(fileTypes)) {
-      console.log(`Ignored: ${filePath || "unknown file"})`);
+      console.log(
+        `watch-copy-modified-files: ignored: ${filePath || "unknown file"})`,
+      );
 
       return;
     }
@@ -53,6 +55,6 @@ export default function copyModifiedFiles() {
   });
 
   console.log(
-    "copy-modified-files plugin: Watching for changes in src directory...",
+    "watch-copy-modified-files: Watching for non-TypeScript changes in src directory...",
   );
 }
