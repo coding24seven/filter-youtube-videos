@@ -9,7 +9,13 @@ const youTubePageTypesRegex: Record<YouTubePageTypes, RegExp> = {
   [StreamsPage]: /youtube\.com\/@.+\/streams/,
 };
 
-export function getCurrentPageType(url: string) {
+export function getCurrentPageType(url: string | undefined) {
+  if (!url) {
+    console.error(`Can't get current page type for url: ${url}`);
+
+    return null;
+  }
+
   const found = Object.entries(youTubePageTypesRegex).find(
     ([_pageType, regExp]) => regExp.test(url),
   );

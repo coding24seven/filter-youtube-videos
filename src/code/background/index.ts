@@ -1,25 +1,25 @@
-import { isExtensionEnabled, update } from "../storage";
+import { update } from "../browser-api";
 
 console.log("background script running");
 
 // Update when the active tab changes
 browser.tabs.onActivated.addListener(async (info) => {
-  console.log("onActivated, tab , info:", info);
-  update({ extensionIsEnabled: await isExtensionEnabled() });
+  console.log("browser.tabs.onActivated, info:", info);
+  void update();
 });
 
 // Update when a tab is updated (e.g., URL changes)
 browser.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-  console.log("onUpdated, tab.", tab);
+  console.log("browser.tabs.onUpdated, tab:", tab);
   if (changeInfo.status === "complete" && tab.active) {
-    update({ extensionIsEnabled: await isExtensionEnabled(), tabUrl: tab.url });
+    void update({ activeTab: tab });
   }
 });
 
 // Update when the storage state changes
 browser.storage.onChanged.addListener(async (changes, area) => {
-  console.log("onChanged, for storage, changes:", changes);
+  console.log("storage.onChanged, changes:", changes);
   if (area === "local" && changes.extensionIsEnabled) {
-    update({ extensionIsEnabled: changes.extensionIsEnabled.newValue });
+    void update({ extensionIsEnabled: changes.extensionIsEnabled.newValue });
   }
 });

@@ -1,7 +1,7 @@
 import {
-  extensionShouldRunOnCurrentPage,
+  contentShouldRunOnCurrentPage,
   isExtensionEnabled,
-} from "../storage";
+} from "../browser-api";
 import { selectors } from "./selectors";
 
 async function main() {
@@ -43,10 +43,10 @@ async function getPopupElement() {
 
   console.log(
     "await extensionShouldRunOnCurrentPage()",
-    await extensionShouldRunOnCurrentPage(),
+    await contentShouldRunOnCurrentPage(),
   );
 
-  if (await extensionShouldRunOnCurrentPage()) {
+  if (await contentShouldRunOnCurrentPage()) {
     extensionShouldNotRunElement.style.display = "none";
     toggleFilterButton.style.display = "block";
 

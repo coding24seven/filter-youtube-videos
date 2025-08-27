@@ -1,7 +1,5 @@
 import { customEvents } from "./events";
 import Observer, { EmittedNodeEventHandler } from "./observer";
-import { isExtensionEnabled } from "../storage";
-import { getCurrentPageType } from "../utils";
 import { YouTubePageTypes } from "./types";
 import {
   getContentsElement,
@@ -9,6 +7,7 @@ import {
   getProgressBarElementByPageType,
   waitForContentsElement,
 } from "./selectors";
+import { MessagePayload } from "../browser-api/types";
 
 export interface FiltersState {
   watchedFilterEnabled: boolean;
@@ -29,13 +28,7 @@ class Filter {
   };
 
   constructor(public filtersState: FiltersState) {
-    this.establishCommunicationWithExtensionToggle();
-
-    isExtensionEnabled().then((isEnabled) => {
-      if (isEnabled) {
-        void this.run();
-      }
-    });
+    this.establishCommunicationWithBackground();
   }
 
   async run() {
@@ -44,20 +37,11 @@ class Filter {
     if (this.contentsElement) {
       console.log("videos container found:", this.contentsElement);
     } else {
-      console.log("videos container element not in the DOM yet. Waiting...");
-    }
-
-    if (!this.contentsElement) {
+      console.log(
+        "videos container element not in the DOM yet. Waiting for it to load...",
+      );
       this.contentsElement = await waitForContentsElement();
-    }
-
-    this.currentPageType = getCurrentPageType(window.location.href);
-
-    if (this.currentPageType) {
-      console.log("Extension may run on this page type");
-    } else {
-      console.log("Extension should not run on this page type");
-      return;
+      console.log("videos container has just loaded:", this.contentsElement);
     }
 
     const { watchedFilterEnabled, membersOnlyFilterEnabled } =
@@ -66,13 +50,14 @@ class Filter {
     this.watchedFilterEnabled = watchedFilterEnabled;
     this.membersOnlyFilterEnabled = membersOnlyFilterEnabled;
 
-    this.filterAllLoadedVideos().catch((err: Error) => {
+    this.filterAllLoadedVideos(true).catch((err: Error) => {
       console.error(err);
     });
 
     this.allVideos = this.contentsElement.children;
     this.videoElementTagName = this.contentsElement.firstElementChild?.tagName;
 
+    /* this element doubles as event bus */
     this.contentsElement?.addEventListener(
       customEvents.observerEmittedNode,
       this.observerEmittedNodeHandler as EventListener,
@@ -102,7 +87,7 @@ class Filter {
   }
 
   processNode(node: Node) {
-    if (node.nodeType !== Node.ELEMENT_NODE || !this.currentPageType) {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
       return;
     }
 
@@ -116,12 +101,12 @@ class Filter {
       return;
     }
 
-    if (this.shouldHideVideo(videoElement)) {
+    if (this.shouldFilterOutVideo(videoElement)) {
       this.switchVideoVisibility(videoElement as HTMLElement, false);
     }
   }
 
-  shouldHideVideo(videoElement: HTMLElement): boolean {
+  shouldFilterOutVideo(videoElement: HTMLElement): boolean {
     if (!this.currentPageType) {
       return false;
     }
@@ -163,19 +148,19 @@ class Filter {
   }
 
   filterVideo(videoElement: HTMLElement) {
-    if (this.shouldHideVideo(videoElement)) {
+    if (this.shouldFilterOutVideo(videoElement)) {
       this.switchVideoVisibility(videoElement, false);
     } else {
       this.switchVideoVisibility(videoElement, true);
     }
   }
 
-  async filterAllLoadedVideos() {
+  async filterAllLoadedVideos(extensionIsEnabled: boolean) {
     if (!this.contentsElement) return;
 
     const videoElements = this.contentsElement.children;
 
-    if (await isExtensionEnabled()) {
+    if (extensionIsEnabled) {
       for (const videoElement of videoElements) {
         this.filterVideo(videoElement as HTMLElement);
       }
@@ -186,24 +171,29 @@ class Filter {
     }
   }
 
-  establishCommunicationWithExtensionToggle() {
+  restoreVideos(): void {
+    this.filterAllLoadedVideos(false).catch((err: Error) => {
+      console.error(err);
+    });
+
+    this.cleanUp();
+  }
+
+  establishCommunicationWithBackground() {
     // Listen for toggle messages from popup
-    browser.runtime.onMessage.addListener(
-      (message: { extensionIsEnabled: boolean }) => {
-        const { extensionIsEnabled } = message;
+    browser.runtime.onMessage.addListener((message: MessagePayload) => {
+      const { extensionIsEnabled, currentPageType } = message;
 
-        console.log("Extension enabled by toogle:", extensionIsEnabled);
+      console.log("Extension is enabled:", extensionIsEnabled);
 
-        if (extensionIsEnabled) {
-          void this.run();
-        } else {
-          this.filterAllLoadedVideos().catch((err: Error) => {
-            console.error(err);
-          });
-          this.cleanUp();
-        }
-      },
-    );
+      this.currentPageType = currentPageType;
+
+      if (extensionIsEnabled) {
+        void this.run();
+      } else {
+        this.restoreVideos();
+      }
+    });
   }
 }
 
