@@ -23,9 +23,8 @@ export default class Filter {
   videoElementTagName: string | undefined;
   videosHiddenCount = 0;
   observer: Observer | null = null;
-  observerEmittedNodeHandler: EmittedNodeEventHandler = (event) => {
-    this.processNode(event.detail.node);
-  };
+  eventBus: EventTarget | null = null;
+  observerEmittedNodeHandler: EmittedNodeEventHandler | null = null;
 
   constructor(public filtersState: FiltersState) {
     this.establishCommunicationWithBackground();
@@ -57,14 +56,18 @@ export default class Filter {
     this.allVideos = this.contentsElement.children;
     this.videoElementTagName = this.contentsElement.firstElementChild?.tagName;
 
-    const eventBus = new EventTarget();
+    this.observerEmittedNodeHandler = (event) => {
+      this.processNode(event.detail.node);
+    };
 
-    eventBus.addEventListener(
+    this.eventBus = new EventTarget();
+
+    this.eventBus.addEventListener(
       customEvents.observerEmittedNode,
       this.observerEmittedNodeHandler as EventListener,
     );
 
-    this.observer = new Observer(this.contentsElement, eventBus);
+    this.observer = new Observer(this.contentsElement, this.eventBus);
     this.observer.activate();
   }
 
@@ -73,7 +76,12 @@ export default class Filter {
       this.observer.deactivate();
       this.observer = null;
     }
+    this.eventBus?.removeEventListener(
+      customEvents.observerEmittedNode,
+      this.observerEmittedNodeHandler as EventListener,
+    );
 
+    this.eventBus = null;
     this.contentsElement = null;
     this.allVideos = undefined;
     this.videoElementTagName = "";
