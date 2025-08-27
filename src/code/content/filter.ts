@@ -2,7 +2,6 @@ import { customEvents } from "./events";
 import Observer, { EmittedNodeEventHandler } from "./observer";
 import { YouTubePageTypes } from "./types";
 import {
-  getContentsElement,
   getMembersOnlyBadgeElement,
   getProgressBarElementByPageType,
   waitForAndGetContentsElement,
@@ -31,17 +30,7 @@ export default class Filter {
   }
 
   async run() {
-    this.contentsElement = getContentsElement();
-
-    if (this.contentsElement) {
-      console.log("videos container found:", this.contentsElement);
-    } else {
-      console.log(
-        "videos container element not in the DOM yet. Waiting for it to load...",
-      );
-      this.contentsElement = await waitForAndGetContentsElement();
-      console.log("videos container has just loaded:", this.contentsElement);
-    }
+    this.contentsElement = await waitForAndGetContentsElement();
 
     const { watchedFilterEnabled, membersOnlyFilterEnabled } =
       this.filtersState;

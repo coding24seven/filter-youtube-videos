@@ -9,15 +9,34 @@ export function getContentsElement() {
 
 export function waitForAndGetContentsElement(): Promise<HTMLElement> {
   return new Promise((resolve, _reject) => {
+    let contentsElement = getContentsElement();
+
+    if (contentsElement) {
+      console.log(
+        "videos container found, already in the DOM:",
+        contentsElement,
+      );
+
+      resolve(contentsElement);
+
+      return;
+    }
+
+    console.log(
+      "videos container element not in the DOM yet. Waiting for it to load...",
+    );
+
     const eventBus = new EventTarget();
 
     const handler: EmittedNodeEventHandler = (event) => {
       console.log("event.detail.node", event.detail.node);
-      const contentsElement = getContentsElement();
+      let contentsElement = getContentsElement();
 
       if (!contentsElement) {
         return;
       }
+
+      console.log("videos container has just loaded:", contentsElement);
 
       observer.deactivate();
 
@@ -25,6 +44,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
         customEvents.observerEmittedNode,
         handler as EventListener,
       );
+
       resolve(contentsElement);
     };
 
