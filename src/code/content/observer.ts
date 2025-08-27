@@ -7,11 +7,14 @@ export interface EmittedNodeEventHandler {
 export default class Observer {
   mutationObserver: MutationObserver;
 
-  constructor(private observedElement: HTMLElement) {
+  public constructor(
+    private observedElement: HTMLElement,
+    private eventBus: EventTarget,
+  ) {
     this.mutationObserver = this.create();
   }
 
-  create() {
+  public create() {
     return new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
@@ -23,14 +26,14 @@ export default class Observer {
               },
             );
 
-            this.observedElement.dispatchEvent(observerEmmittedNodeEvent);
+            this.eventBus.dispatchEvent(observerEmmittedNodeEvent);
           });
         }
       }
     });
   }
 
-  activate() {
+  public activate() {
     this.mutationObserver.observe(this.observedElement, {
       childList: true,
       subtree: true,
@@ -38,7 +41,7 @@ export default class Observer {
     console.log("Observer started on element:", this.observedElement);
   }
 
-  deactivate() {
+  public deactivate() {
     this.mutationObserver.disconnect();
     console.log("Observer disconnected");
   }
