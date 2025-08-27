@@ -64,12 +64,12 @@ class Filter {
     );
 
     this.observer = new Observer(this.contentsElement);
-    this.observer.activateObserver();
+    this.observer.activate();
   }
 
   cleanUp() {
     if (this.observer) {
-      this.observer.deactivateObserver();
+      this.observer.deactivate();
       this.observer = null;
     }
 

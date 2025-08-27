@@ -26,11 +26,10 @@ export function getContentsElement() {
 export function waitForContentsElement(): Promise<HTMLElement> {
   return new Promise((resolve, _reject) => {
     const eventBusElement = document.body;
-    const observerForAllVideosContainerElement = new Observer(eventBusElement);
-    observerForAllVideosContainerElement.activateObserver();
+    const observer = new Observer(eventBusElement);
+    observer.activate();
 
     const handler: EmittedNodeEventHandler = (event) => {
-      // @ts-ignore
       console.log("event.detail.node", event.detail.node);
       const contentsElement = getContentsElement();
 
@@ -38,7 +37,7 @@ export function waitForContentsElement(): Promise<HTMLElement> {
         return;
       }
 
-      observerForAllVideosContainerElement.deactivateObserver();
+      observer.deactivate();
       eventBusElement.removeEventListener(
         customEvents.observerEmittedNode,
         handler as EventListener,

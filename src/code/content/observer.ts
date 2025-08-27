@@ -6,14 +6,12 @@ export interface EmittedNodeEventHandler {
 
 export default class Observer {
   mutationObserver: MutationObserver;
-  observerIsActive = false;
 
   constructor(private observedElement: HTMLElement) {
-    this.mutationObserver = this.createObserver();
+    this.mutationObserver = this.create();
   }
 
-  createObserver() {
-    // Watch for new videos as they load
+  create() {
     return new MutationObserver((mutationsList) => {
       for (const mutation of mutationsList) {
         if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
@@ -32,7 +30,7 @@ export default class Observer {
     });
   }
 
-  activateObserver() {
+  activate() {
     this.mutationObserver.observe(this.observedElement, {
       childList: true,
       subtree: true,
@@ -40,15 +38,8 @@ export default class Observer {
     console.log("Observer started on element:", this.observedElement);
   }
 
-  deactivateObserver() {
-    if (!this.observerIsActive) {
-      console.log("Observer is already inactive");
-    }
-
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-      console.log("Observer disconnected");
-      this.observerIsActive = false;
-    }
+  deactivate() {
+    this.mutationObserver.disconnect();
+    console.log("Observer disconnected");
   }
 }
