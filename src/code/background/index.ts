@@ -1,4 +1,5 @@
 import { update } from "../browser-api";
+import { debounceUpdate } from "./utils";
 
 console.log("background script running");
 
@@ -8,11 +9,12 @@ browser.tabs.onActivated.addListener(async (info) => {
   void update();
 });
 
-// Update when a tab is updated (e.g., URL changes)
+const getDebouncedTab = debounceUpdate(100);
 browser.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-  console.log("browser.tabs.onUpdated, tab:", tab);
   if (changeInfo.status === "complete" && tab.active) {
-    void update({ activeTab: tab });
+    const lastTab = await getDebouncedTab(tab);
+    console.log("browser.tabs.onUpdated, tab:", lastTab);
+    void update({ activeTab: lastTab });
   }
 });
 
