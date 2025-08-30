@@ -1,9 +1,12 @@
 import Tab = browser.tabs.Tab;
 import { YouTubePageTypes } from "../content/types";
+import { BrowserEvents } from "../content/events";
 
 export interface MessagePayload {
+  browserEvent: BrowserEvents;
+  tabId: number | undefined;
   extensionIsEnabled: boolean;
-  currentPageType: YouTubePageTypes;
+  currentYouTubePageType: YouTubePageTypes;
 }
 
 export interface UpdateIconProperties {
@@ -12,6 +15,7 @@ export interface UpdateIconProperties {
 }
 
 export interface UpdateStateProperties {
+  browserEvent: BrowserEvents;
   extensionIsEnabled?: boolean;
   activeTab?: Tab;
 }

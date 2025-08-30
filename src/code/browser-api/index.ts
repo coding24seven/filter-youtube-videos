@@ -1,9 +1,10 @@
-import { getCurrentPageType } from "../utils";
+import { getCurrentYouTubePageType } from "../utils";
 import {
   MessagePayload,
   UpdateIconProperties,
   UpdateStateProperties,
 } from "./types";
+import { BrowserEvents } from "../content/events";
 
 export async function isExtensionEnabled() {
   return !!(await browser.storage.local.get()).extensionIsEnabled;
@@ -32,20 +33,23 @@ export async function sendMessageToContent(
   await browser.tabs.sendMessage(activeTabId, payload);
 }
 
-export async function update({
-  extensionIsEnabled,
-  activeTab,
-}: UpdateStateProperties = {}) {
+export async function update(
+  { extensionIsEnabled, browserEvent, activeTab }: UpdateStateProperties = {
+    browserEvent: BrowserEvents.StorageOnChanged,
+  },
+) {
   const isEnabled = extensionIsEnabled || (await isExtensionEnabled());
   const tab = activeTab || (await queryActiveTab());
   const tabId = tab.id;
   const tabUrl = tab.url;
-  const currentPageType = getCurrentPageType(tabUrl);
+  const currentYouTubePageType = getCurrentYouTubePageType(tabUrl);
 
-  if (currentPageType) {
+  if (currentYouTubePageType) {
     void sendMessageToContent(tabId, {
+      browserEvent,
       extensionIsEnabled: isEnabled,
-      currentPageType,
+      tabId,
+      currentYouTubePageType: currentYouTubePageType,
     });
   }
 
@@ -72,5 +76,5 @@ export async function contentShouldRunOnCurrentPage(activeTabUrl?: string) {
     return false;
   }
 
-  return getCurrentPageType(url);
+  return getCurrentYouTubePageType(url);
 }

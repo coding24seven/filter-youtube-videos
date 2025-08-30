@@ -1,4 +1,4 @@
-import { customEvents } from "./events";
+import { BrowserEvents, customEvents, youTubeEvents } from "./events";
 import Observer, { EmittedNodeEventHandler } from "./observer";
 import { YouTubePageTypes } from "./types";
 import {
@@ -14,7 +14,7 @@ export interface FiltersState {
 }
 
 export default class Filter {
-  currentPageType: YouTubePageTypes | null = null;
+  currentYouTubePageType: YouTubePageTypes | null = null;
   watchedFilterEnabled: boolean = true;
   membersOnlyFilterEnabled: boolean = true;
   contentsElement: HTMLElement | null = null;
@@ -27,6 +27,26 @@ export default class Filter {
 
   constructor(public filtersState: FiltersState) {
     this.establishCommunicationWithBackground();
+  }
+
+  cleanUp() {
+    console.log("Cleaning up");
+
+    if (this.observer) {
+      this.observer.deactivate();
+      this.observer = null;
+    }
+    this.eventBus?.removeEventListener(
+      customEvents.observerEmittedNode,
+      this.observerEmittedNodeHandler as EventListener,
+    );
+
+    this.eventBus = null;
+    this.contentsElement = null;
+    this.allVideos = undefined;
+    this.videoElementTagName = "";
+    this.videosHiddenCount = 0;
+    this.currentYouTubePageType = null;
   }
 
   async run() {
@@ -46,6 +66,7 @@ export default class Filter {
     this.videoElementTagName = this.contentsElement.firstElementChild?.tagName;
 
     this.observerEmittedNodeHandler = (event) => {
+      console.log("before processNode--------");
       this.processNode(event.detail.node);
     };
 
@@ -58,24 +79,6 @@ export default class Filter {
 
     this.observer = new Observer(this.contentsElement, this.eventBus);
     this.observer.activate();
-  }
-
-  cleanUp() {
-    if (this.observer) {
-      this.observer.deactivate();
-      this.observer = null;
-    }
-    this.eventBus?.removeEventListener(
-      customEvents.observerEmittedNode,
-      this.observerEmittedNodeHandler as EventListener,
-    );
-
-    this.eventBus = null;
-    this.contentsElement = null;
-    this.allVideos = undefined;
-    this.videoElementTagName = "";
-    this.videosHiddenCount = 0;
-    this.currentPageType = null;
   }
 
   processNode(node: Node) {
@@ -99,7 +102,7 @@ export default class Filter {
   }
 
   shouldFilterOutVideo(videoElement: HTMLElement): boolean {
-    if (!this.currentPageType) {
+    if (!this.currentYouTubePageType) {
       return false;
     }
 
@@ -107,7 +110,7 @@ export default class Filter {
 
     if (this.watchedFilterEnabled) {
       progressBarElement = getProgressBarElementByPageType(
-        this.currentPageType,
+        this.currentYouTubePageType,
         videoElement,
       );
     }
@@ -163,28 +166,59 @@ export default class Filter {
     }
   }
 
-  restoreVideos(): void {
+  restoreVideosVisibility(): void {
     this.filterAllLoadedVideos(false).catch((err: Error) => {
       console.error(err);
     });
-
-    this.cleanUp();
   }
 
   establishCommunicationWithBackground() {
-    // Listen for toggle messages from popup
-    browser.runtime.onMessage.addListener((message: MessagePayload) => {
-      const { extensionIsEnabled, currentPageType } = message;
+    // Listen for toggle messages initiated by popup and by background script, which are sent while on YouTubePageTypes pages only
+    browser.runtime.onMessage.addListener(
+      (message: MessagePayload, _sender, _sendResponse) => {
+        const {
+          tabId,
+          extensionIsEnabled,
+          browserEvent,
+          currentYouTubePageType,
+        } = message;
 
-      console.log("Extension is enabled:", extensionIsEnabled);
+        console.log("Extension is enabled:", extensionIsEnabled);
+        console.log("tabId", tabId);
+        console.log("browser event", browserEvent);
 
-      this.currentPageType = currentPageType;
+        if (extensionIsEnabled) {
+          this.cleanUp();
+          this.currentYouTubePageType = currentYouTubePageType;
 
-      if (extensionIsEnabled) {
-        void this.run();
-      } else {
-        this.restoreVideos();
-      }
-    });
+          if (
+            [
+              BrowserEvents.StorageOnChanged /* extension toggled on */,
+              BrowserEvents.TabsOnActivated /* tab clicked */,
+            ].includes(browserEvent)
+          ) {
+            void this.run();
+          } else if (BrowserEvents.TabsOnUpdated === browserEvent) {
+            /* url changed within a tab, by clicking on link or reloading page */
+            window.addEventListener(
+              youTubeEvents.ytNavigateFinish,
+              (...args) => {
+                console.log(youTubeEvents.ytNavigateFinish, args);
+                void this.run();
+              },
+              { once: true },
+            );
+          }
+        } else {
+          if (
+            /* extension toggled off */
+            BrowserEvents.StorageOnChanged === browserEvent
+          ) {
+            this.restoreVideosVisibility();
+            this.cleanUp();
+          }
+        }
+      },
+    );
   }
 }

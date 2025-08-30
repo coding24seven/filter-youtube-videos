@@ -29,7 +29,10 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
     const eventBus = new EventTarget();
 
     const handler: EmittedNodeEventHandler = (event) => {
-      console.log("event.detail.node", event.detail.node);
+      console.log(
+        "waitForAndGetContentsElement, event.detail.node",
+        event.detail.node,
+      );
       let contentsElement = getContentsElement();
 
       if (!contentsElement) {
@@ -59,11 +62,11 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
 }
 
 export function getProgressBarElementByPageType(
-  currentPageType: YouTubePageTypes,
+  currentYouTubePageType: YouTubePageTypes,
   videoElement: HTMLElement,
 ) {
   return videoElement.querySelector(
-    selectors.progressBarSelectors[currentPageType],
+    selectors.progressBarSelectors[currentYouTubePageType],
   );
 }
 
