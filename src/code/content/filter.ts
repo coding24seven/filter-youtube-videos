@@ -7,6 +7,8 @@ import {
   waitForAndGetContentsElement,
 } from "./elements";
 import { MessagePayload } from "../browser-api/types";
+import { getCurrentYouTubePageType } from "../utils";
+import { isExtensionEnabled } from "../browser-api";
 
 export interface FiltersState {
   watchedFilterEnabled: boolean;
@@ -17,40 +19,29 @@ export default class Filter {
   currentYouTubePageType: YouTubePageTypes | null = null;
   watchedFilterEnabled: boolean = true;
   membersOnlyFilterEnabled: boolean = true;
-  contentsElement: HTMLElement | null = null;
-  allVideos: HTMLCollection | undefined;
-  videoElementTagName: string | undefined;
   videosHiddenCount = 0;
-  observer: Observer | null = null;
-  eventBus: EventTarget | null = null;
-  observerEmittedNodeHandler: EmittedNodeEventHandler | null = null;
+  cleanUpProcedures: (() => void)[] = [];
 
   constructor(public filtersState: FiltersState) {
+    this.setUpYtNavigateFinishEventListener();
     this.establishCommunicationWithBackground();
   }
 
   cleanUp() {
     console.log("Cleaning up");
+    this.cleanUpProcedures.forEach((procedure) => {
+      procedure();
+    });
 
-    if (this.observer) {
-      this.observer.deactivate();
-      this.observer = null;
-    }
-    this.eventBus?.removeEventListener(
-      customEvents.observerEmittedNode,
-      this.observerEmittedNodeHandler as EventListener,
-    );
-
-    this.eventBus = null;
-    this.contentsElement = null;
-    this.allVideos = undefined;
-    this.videoElementTagName = "";
     this.videosHiddenCount = 0;
     this.currentYouTubePageType = null;
   }
 
   async run() {
-    this.contentsElement = await waitForAndGetContentsElement();
+    console.log("*** Running filter ***");
+    const [contentsElement, cleanUpProcedure]: [HTMLElement, () => void] =
+      await waitForAndGetContentsElement();
+    this.cleanUpProcedures.push(cleanUpProcedure);
 
     const { watchedFilterEnabled, membersOnlyFilterEnabled } =
       this.filtersState;
@@ -62,34 +53,58 @@ export default class Filter {
       console.error(err);
     });
 
-    this.allVideos = this.contentsElement.children;
-    this.videoElementTagName = this.contentsElement.firstElementChild?.tagName;
+    let videoElementTagName: string | undefined;
 
-    this.observerEmittedNodeHandler = (event) => {
-      console.log("before processNode--------");
-      this.processNode(event.detail.node);
+    const handler: EmittedNodeEventHandler = (event) => {
+      if (!contentsElement) {
+        console.error(`observerEmittedNodeHandler(): contentElement missing`);
+        return;
+      }
+
+      if (!contentsElement.firstElementChild) {
+        console.error(
+          `observerEmittedNodeHandler(): contentElement.firstElementChild missing`,
+        );
+        return;
+      }
+
+      videoElementTagName =
+        videoElementTagName || contentsElement.firstElementChild.tagName;
+      console.log(
+        "before processNode, videoElementTagName",
+        videoElementTagName,
+      );
+      this.processNode(event.detail.node, videoElementTagName);
     };
 
-    this.eventBus = new EventTarget();
+    const eventBus = new EventTarget();
 
-    this.eventBus.addEventListener(
+    const args: [string, EventListener] = [
       customEvents.observerEmittedNode,
-      this.observerEmittedNodeHandler as EventListener,
-    );
+      handler as EventListener,
+    ];
 
-    this.observer = new Observer(this.contentsElement, this.eventBus);
-    this.observer.activate();
+    eventBus.addEventListener(...args);
+    this.cleanUpProcedures.push(() => {
+      eventBus.removeEventListener(...args);
+    });
+
+    const observer = new Observer(contentsElement, eventBus);
+    observer.activate();
+    this.cleanUpProcedures.push(() => {
+      observer.deactivate();
+    });
   }
 
-  processNode(node: Node) {
+  processNode(node: Node, videoElementTagName: string) {
     if (node.nodeType !== Node.ELEMENT_NODE) {
       return;
     }
-
+    // todo: debounce this as once a video element is located, it makes no sense to react to new nodes added inside of it
     const triggeringElement = node as HTMLElement;
 
     const videoElement = triggeringElement.closest(
-      `${this.videoElementTagName}`,
+      videoElementTagName,
     ) as HTMLElement;
 
     if (!videoElement) {
@@ -151,9 +166,13 @@ export default class Filter {
   }
 
   async filterAllLoadedVideos(extensionIsEnabled: boolean) {
-    if (!this.contentsElement) return;
+    const [contentsElement, cleanUpProcedure]: [HTMLElement, () => void] =
+      await waitForAndGetContentsElement();
+    this.cleanUpProcedures.push(cleanUpProcedure);
 
-    const videoElements = this.contentsElement.children;
+    if (!contentsElement) return;
+
+    const videoElements = contentsElement.children;
 
     if (extensionIsEnabled) {
       for (const videoElement of videoElements) {
@@ -172,6 +191,25 @@ export default class Filter {
     });
   }
 
+  /* url changed within a tab, by clicking on link or reloading page */
+  setUpYtNavigateFinishEventListener() {
+    const handler = async (event: Event) => {
+      console.log(youTubeEvents.ytNavigateFinish, "event:", event);
+
+      if (!(await isExtensionEnabled())) {
+        return;
+      }
+
+      this.cleanUp();
+      this.currentYouTubePageType = getCurrentYouTubePageType(
+        window.location.href,
+      );
+      void this.run();
+    };
+
+    window.addEventListener(youTubeEvents.ytNavigateFinish, handler);
+  }
+
   establishCommunicationWithBackground() {
     // Listen for toggle messages initiated by popup and by background script, which are sent while on YouTubePageTypes pages only
     browser.runtime.onMessage.addListener(
@@ -184,39 +222,38 @@ export default class Filter {
         } = message;
 
         console.log("Extension is enabled:", extensionIsEnabled);
-        console.log("tabId", tabId);
-        console.log("browser event", browserEvent);
+        console.log("tabId:", tabId);
+        console.log("browser event:", browserEvent);
 
-        if (extensionIsEnabled) {
+        if (
+          extensionIsEnabled &&
+          [
+            BrowserEvents.StorageOnChanged /* extension toggled on */,
+            BrowserEvents.TabsOnActivated /* tab clicked */,
+          ].includes(browserEvent)
+        ) {
           this.cleanUp();
           this.currentYouTubePageType = currentYouTubePageType;
+          void this.run();
 
-          if (
-            [
-              BrowserEvents.StorageOnChanged /* extension toggled on */,
-              BrowserEvents.TabsOnActivated /* tab clicked */,
-            ].includes(browserEvent)
-          ) {
-            void this.run();
-          } else if (BrowserEvents.TabsOnUpdated === browserEvent) {
-            /* url changed within a tab, by clicking on link or reloading page */
-            window.addEventListener(
-              youTubeEvents.ytNavigateFinish,
-              (...args) => {
-                console.log(youTubeEvents.ytNavigateFinish, args);
-                void this.run();
-              },
-              { once: true },
-            );
-          }
-        } else {
-          if (
-            /* extension toggled off */
-            BrowserEvents.StorageOnChanged === browserEvent
-          ) {
-            this.restoreVideosVisibility();
-            this.cleanUp();
-          }
+          return;
+        }
+
+        if (
+          extensionIsEnabled &&
+          BrowserEvents.TabsOnUpdated === browserEvent
+        ) {
+          /* ignore as navigation to new url is handled via setUpYtNavigateFinishEventListener method */
+          return;
+        }
+
+        if (
+          /* extension toggled off */
+          !extensionIsEnabled &&
+          BrowserEvents.StorageOnChanged === browserEvent
+        ) {
+          this.restoreVideosVisibility();
+          this.cleanUp();
         }
       },
     );

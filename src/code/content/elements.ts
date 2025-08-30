@@ -7,9 +7,14 @@ export function getContentsElement() {
   return document.getElementById(selectors.videosContainer);
 }
 
-export function waitForAndGetContentsElement(): Promise<HTMLElement> {
+export function waitForAndGetContentsElement(): Promise<
+  [HTMLElement, () => void]
+> {
   return new Promise((resolve, _reject) => {
     let contentsElement = getContentsElement();
+    const cleanUpProcedure = () => {
+      contentsElement = null;
+    };
 
     if (contentsElement) {
       console.log(
@@ -17,7 +22,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
         contentsElement,
       );
 
-      resolve(contentsElement);
+      resolve([contentsElement, cleanUpProcedure]);
 
       return;
     }
@@ -48,7 +53,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
         handler as EventListener,
       );
 
-      resolve(contentsElement);
+      resolve([contentsElement, cleanUpProcedure]);
     };
 
     eventBus.addEventListener(

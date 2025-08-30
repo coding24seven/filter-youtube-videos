@@ -1,7 +1,7 @@
 export enum BrowserEvents {
-  TabsOnActivated,
-  TabsOnUpdated,
-  StorageOnChanged,
+  TabsOnActivated = "browser.tabs.OnActivated",
+  TabsOnUpdated = "browser.tabs.OnUpdated",
+  StorageOnChanged = "browser.storage.onChanged",
 }
 
 export const youTubeEvents = {
