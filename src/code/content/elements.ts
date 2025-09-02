@@ -7,14 +7,9 @@ export function getContentsElement() {
   return document.getElementById(selectors.videosContainer);
 }
 
-export function waitForAndGetContentsElement(): Promise<
-  [HTMLElement, () => void]
-> {
+export function waitForAndGetContentsElement(): Promise<HTMLElement> {
   return new Promise((resolve, _reject) => {
     let contentsElement = getContentsElement();
-    const cleanUpProcedure = () => {
-      contentsElement = null;
-    };
 
     if (contentsElement) {
       console.log(
@@ -22,7 +17,7 @@ export function waitForAndGetContentsElement(): Promise<
         contentsElement,
       );
 
-      resolve([contentsElement, cleanUpProcedure]);
+      resolve(contentsElement);
 
       return;
     }
@@ -30,8 +25,6 @@ export function waitForAndGetContentsElement(): Promise<
     console.log(
       "videos container element not in the DOM yet. Waiting for it to load...",
     );
-
-    const eventBus = new EventTarget();
 
     const handler: EmittedNodeEventHandler = (event) => {
       console.log(
@@ -47,21 +40,20 @@ export function waitForAndGetContentsElement(): Promise<
       console.log("videos container has just loaded:", contentsElement);
 
       observer.deactivate();
+      eventBusForObserver.removeEventListener(...args);
 
-      eventBus.removeEventListener(
-        customEvents.observerEmittedNode,
-        handler as EventListener,
-      );
-
-      resolve([contentsElement, cleanUpProcedure]);
+      resolve(contentsElement);
     };
 
-    eventBus.addEventListener(
+    const eventBusForObserver = new EventTarget();
+    const args: [string, EventListener] = [
       customEvents.observerEmittedNode,
       handler as EventListener,
-    );
+    ];
 
-    const observer = new Observer(document.body, eventBus);
+    eventBusForObserver.addEventListener(...args);
+
+    const observer = new Observer(document.body, eventBusForObserver);
     observer.activate();
   });
 }

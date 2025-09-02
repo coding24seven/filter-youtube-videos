@@ -2,6 +2,7 @@ import { BrowserEvents, customEvents, youTubeEvents } from "./events";
 import Observer, { EmittedNodeEventHandler } from "./observer";
 import { YouTubePageTypes } from "./types";
 import {
+  getContentsElement,
   getMembersOnlyBadgeElement,
   getProgressBarElementByPageType,
   waitForAndGetContentsElement,
@@ -37,17 +38,17 @@ export default class Filter {
     this.currentYouTubePageType = null;
   }
 
-  async run() {
+  async run(currentYouTubePageType?: YouTubePageTypes) {
     console.log("*** Running filter ***");
-    const [contentsElement, cleanUpProcedure]: [HTMLElement, () => void] =
-      await waitForAndGetContentsElement();
-    this.cleanUpProcedures.push(cleanUpProcedure);
+    const contentsElement = await waitForAndGetContentsElement();
 
     const { watchedFilterEnabled, membersOnlyFilterEnabled } =
       this.filtersState;
 
     this.watchedFilterEnabled = watchedFilterEnabled;
     this.membersOnlyFilterEnabled = membersOnlyFilterEnabled;
+    this.currentYouTubePageType =
+      currentYouTubePageType || getCurrentYouTubePageType(window.location.href);
 
     this.filterAllLoadedVideos(true).catch((err: Error) => {
       console.error(err);
@@ -77,19 +78,21 @@ export default class Filter {
       this.processNode(event.detail.node, videoElementTagName);
     };
 
-    const eventBus = new EventTarget();
-
+    const eventBusForObserver = new EventTarget();
     const args: [string, EventListener] = [
       customEvents.observerEmittedNode,
       handler as EventListener,
     ];
 
-    eventBus.addEventListener(...args);
+    eventBusForObserver.addEventListener(...args);
     this.cleanUpProcedures.push(() => {
-      eventBus.removeEventListener(...args);
+      eventBusForObserver.removeEventListener(...args);
     });
 
-    const observer = new Observer(contentsElement, eventBus);
+    const observer: Observer = new Observer(
+      contentsElement,
+      eventBusForObserver,
+    );
     observer.activate();
     this.cleanUpProcedures.push(() => {
       observer.deactivate();
@@ -166,9 +169,7 @@ export default class Filter {
   }
 
   async filterAllLoadedVideos(extensionIsEnabled: boolean) {
-    const [contentsElement, cleanUpProcedure]: [HTMLElement, () => void] =
-      await waitForAndGetContentsElement();
-    this.cleanUpProcedures.push(cleanUpProcedure);
+    const contentsElement = getContentsElement();
 
     if (!contentsElement) return;
 
@@ -201,9 +202,6 @@ export default class Filter {
       }
 
       this.cleanUp();
-      this.currentYouTubePageType = getCurrentYouTubePageType(
-        window.location.href,
-      );
       void this.run();
     };
 
@@ -233,8 +231,7 @@ export default class Filter {
           ].includes(browserEvent)
         ) {
           this.cleanUp();
-          this.currentYouTubePageType = currentYouTubePageType;
-          void this.run();
+          void this.run(currentYouTubePageType);
 
           return;
         }
