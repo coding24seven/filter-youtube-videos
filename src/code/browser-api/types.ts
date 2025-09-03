@@ -2,6 +2,11 @@ import Tab = browser.tabs.Tab;
 import { YouTubePageTypes } from "../content/types";
 import { BrowserEvents } from "../content/events";
 
+export interface State {
+  extensionIsEnabled: boolean | undefined;
+  hiddenVideosCount: number | undefined;
+}
+
 export interface MessagePayload {
   browserEvent: BrowserEvents;
   tabId: number | undefined;

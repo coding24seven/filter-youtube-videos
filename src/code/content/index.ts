@@ -3,4 +3,4 @@ import Filter from "./filter";
 
 compensateForFirefoxBugs();
 
-new Filter({ watchedFilterEnabled: true, membersOnlyFilterEnabled: true });
+new Filter({ watchedFilterEnabled: true, membersOnlyFilterEnabled: false });

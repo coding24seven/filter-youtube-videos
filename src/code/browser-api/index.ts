@@ -1,20 +1,44 @@
 import { getCurrentYouTubePageType } from "../utils";
 import {
   MessagePayload,
+  State,
   UpdateIconProperties,
   UpdateStateProperties,
 } from "./types";
 import { BrowserEvents } from "../content/events";
+import Tab = browser.tabs.Tab;
+
+export function getState() {
+  return browser.storage.local.get() as Promise<State>;
+}
+
+export async function setState(state: Partial<State>) {
+  return browser.storage.local.set(state);
+}
 
 export async function isExtensionEnabled() {
-  return !!(await browser.storage.local.get()).extensionIsEnabled;
+  return !!(await getState()).extensionIsEnabled;
+}
+
+export async function toggleExtensionIsEnabled() {
+  void setState({
+    extensionIsEnabled: !(await isExtensionEnabled()),
+  });
+}
+
+export async function getHiddenVideosCount() {
+  return (await getState()).hiddenVideosCount;
+}
+
+export function updateHiddenVideosCount(hiddenVideosCount: number) {
+  return setState({ hiddenVideosCount });
 }
 
 export async function queryActiveTab() {
-  const browserTabs = await browser.tabs.query({
-    active: true, // only one tab (currently active one) is returned in []
+  const browserTabs = (await browser.tabs.query({
+    active: true,
     currentWindow: true,
-  });
+  })) as [Tab];
   const [activeBrowserTab] = browserTabs;
 
   return activeBrowserTab;

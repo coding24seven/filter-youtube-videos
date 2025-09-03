@@ -27,10 +27,6 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
     );
 
     const handler: EmittedNodeEventHandler = (event) => {
-      console.log(
-        "waitForAndGetContentsElement, event.detail.node",
-        event.detail.node,
-      );
       let contentsElement = getContentsElement();
 
       if (!contentsElement) {
@@ -73,4 +69,17 @@ export function getMembersOnlyBadgeElement(videoElement: HTMLElement) {
   );
 
   return membersOnlyBadgeElement?.textContent ? membersOnlyBadgeElement : null;
+}
+
+export function setElementVisibility(element: HTMLElement, hide: boolean) {
+
+  if (hide) {
+    element.style.display = "none";
+  } else {
+    element.style.display = "";
+  }
+}
+
+export function isElementHidden(element: HTMLElement) {
+  return element.style.display === "none";
 }

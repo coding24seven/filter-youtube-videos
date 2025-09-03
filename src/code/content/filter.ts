@@ -5,11 +5,12 @@ import {
   getContentsElement,
   getMembersOnlyBadgeElement,
   getProgressBarElementByPageType,
+  setElementVisibility,
   waitForAndGetContentsElement,
 } from "./elements";
 import { MessagePayload } from "../browser-api/types";
 import { getCurrentYouTubePageType } from "../utils";
-import { isExtensionEnabled } from "../browser-api";
+import { isExtensionEnabled, updateHiddenVideosCount } from "../browser-api";
 
 export interface FiltersState {
   watchedFilterEnabled: boolean;
@@ -20,25 +21,29 @@ export default class Filter {
   currentYouTubePageType: YouTubePageTypes | null = null;
   watchedFilterEnabled: boolean = true;
   membersOnlyFilterEnabled: boolean = true;
-  videosHiddenCount = 0;
+  videoElementsProcessedByObserver = new Set();
+  hiddenVideosCount = 0;
+  incrementHiddenVideosCount = this.incrementHiddenVideosCountDebounced();
   cleanUpProcedures: (() => void)[] = [];
 
-  constructor(public filtersState: FiltersState) {
+  public constructor(public filtersState: FiltersState) {
     this.setUpYtNavigateFinishEventListener();
     this.establishCommunicationWithBackground();
   }
 
-  cleanUp() {
+  private async cleanUp() {
     console.log("Cleaning up");
     this.cleanUpProcedures.forEach((procedure) => {
       procedure();
     });
 
-    this.videosHiddenCount = 0;
     this.currentYouTubePageType = null;
+    this.videoElementsProcessedByObserver.clear();
+    this.hiddenVideosCount = 0;
+    return updateHiddenVideosCount(0);
   }
 
-  async run(currentYouTubePageType?: YouTubePageTypes) {
+  private async run(currentYouTubePageType?: YouTubePageTypes) {
     console.log("*** Running filter ***");
     const contentsElement = await waitForAndGetContentsElement();
 
@@ -50,7 +55,7 @@ export default class Filter {
     this.currentYouTubePageType =
       currentYouTubePageType || getCurrentYouTubePageType(window.location.href);
 
-    this.filterAllLoadedVideos(true).catch((err: Error) => {
+    this.filterAllLoadedVideos().catch((err: Error) => {
       console.error(err);
     });
 
@@ -71,10 +76,6 @@ export default class Filter {
 
       videoElementTagName =
         videoElementTagName || contentsElement.firstElementChild.tagName;
-      console.log(
-        "before processNode, videoElementTagName",
-        videoElementTagName,
-      );
       this.processNode(event.detail.node, videoElementTagName);
     };
 
@@ -99,11 +100,11 @@ export default class Filter {
     });
   }
 
-  processNode(node: Node, videoElementTagName: string) {
+  private processNode(node: Node, videoElementTagName: string) {
     if (node.nodeType !== Node.ELEMENT_NODE) {
       return;
     }
-    // todo: debounce this as once a video element is located, it makes no sense to react to new nodes added inside of it
+
     const triggeringElement = node as HTMLElement;
 
     const videoElement = triggeringElement.closest(
@@ -114,12 +115,18 @@ export default class Filter {
       return;
     }
 
-    if (this.shouldFilterOutVideo(videoElement)) {
-      this.switchVideoVisibility(videoElement as HTMLElement, false);
+    if (this.videoElementsProcessedByObserver.has(videoElement)) {
+      return;
+    }
+
+    this.videoElementsProcessedByObserver.add(videoElement);
+
+    if (this.shouldHideVideo(videoElement)) {
+      this.hideVideo(videoElement);
     }
   }
 
-  shouldFilterOutVideo(videoElement: HTMLElement): boolean {
+  private shouldHideVideo(videoElement: HTMLElement) {
     if (!this.currentYouTubePageType) {
       return false;
     }
@@ -142,58 +149,48 @@ export default class Filter {
     return !!(progressBarElement || membersOnlyBadgeElement);
   }
 
-  switchVideoVisibility(videoElement: HTMLElement, makeVideoVisible: boolean) {
-    const videoIsCurrentlyInvisible = videoElement.style.display === "none";
-    const videoAlreadyHasDesiredVisibility =
-      (videoIsCurrentlyInvisible && !makeVideoVisible) ||
-      (!videoIsCurrentlyInvisible && makeVideoVisible);
+  private incrementHiddenVideosCountDebounced() {
+    let timeout: NodeJS.Timeout;
 
-    if (videoAlreadyHasDesiredVisibility) {
-      return;
-    }
-
-    if (makeVideoVisible) {
-      videoElement.style.display = "";
-    } else {
-      this.videosHiddenCount++;
-      videoElement.style.display = "none";
-    }
+    return () => {
+      this.hiddenVideosCount++;
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        void updateHiddenVideosCount(this.hiddenVideosCount);
+      }, 100);
+    };
   }
 
-  filterVideo(videoElement: HTMLElement) {
-    if (this.shouldFilterOutVideo(videoElement)) {
-      this.switchVideoVisibility(videoElement, false);
-    } else {
-      this.switchVideoVisibility(videoElement, true);
-    }
+  private hideVideo(videoElement: HTMLElement) {
+    this.incrementHiddenVideosCount();
+    setElementVisibility(videoElement, true);
   }
 
-  async filterAllLoadedVideos(extensionIsEnabled: boolean) {
+  private showVideo(videoElement: HTMLElement) {
+    // todo: decrement count if not resetting all to 0
+    setElementVisibility(videoElement, false);
+  }
+
+  private async filterAllLoadedVideos() {
     const contentsElement = getContentsElement();
-
     if (!contentsElement) return;
 
-    const videoElements = contentsElement.children;
+    const extensionIsEnabled = await isExtensionEnabled();
 
-    if (extensionIsEnabled) {
-      for (const videoElement of videoElements) {
-        this.filterVideo(videoElement as HTMLElement);
-      }
-    } else {
-      for (const videoElement of videoElements) {
-        this.switchVideoVisibility(videoElement as HTMLElement, true);
+    const videoElements =
+      contentsElement.children as HTMLCollectionOf<HTMLElement>;
+
+    for (const videoElement of videoElements) {
+      if (extensionIsEnabled && this.shouldHideVideo(videoElement)) {
+        this.hideVideo(videoElement);
+      } else {
+        this.showVideo(videoElement);
       }
     }
-  }
-
-  restoreVideosVisibility(): void {
-    this.filterAllLoadedVideos(false).catch((err: Error) => {
-      console.error(err);
-    });
   }
 
   /* url changed within a tab, by clicking on link or reloading page */
-  setUpYtNavigateFinishEventListener() {
+  private setUpYtNavigateFinishEventListener() {
     const handler = async (event: Event) => {
       console.log(youTubeEvents.ytNavigateFinish, "event:", event);
 
@@ -201,17 +198,24 @@ export default class Filter {
         return;
       }
 
-      this.cleanUp();
+      console.log("before cleanup", getContentsElement()?.childElementCount);
+      void this.filterAllLoadedVideos();
+      await this.cleanUp();
+      // todo: optimize
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("after cleanup", getContentsElement()?.childElementCount);
+
       void this.run();
     };
 
     window.addEventListener(youTubeEvents.ytNavigateFinish, handler);
   }
 
-  establishCommunicationWithBackground() {
+  private establishCommunicationWithBackground() {
     // Listen for toggle messages initiated by popup and by background script, which are sent while on YouTubePageTypes pages only
     browser.runtime.onMessage.addListener(
-      (message: MessagePayload, _sender, _sendResponse) => {
+      async (message: MessagePayload, _sender, _sendResponse) => {
         const {
           tabId,
           extensionIsEnabled,
@@ -230,7 +234,7 @@ export default class Filter {
             BrowserEvents.TabsOnActivated /* tab clicked */,
           ].includes(browserEvent)
         ) {
-          this.cleanUp();
+          await this.cleanUp();
           void this.run(currentYouTubePageType);
 
           return;
@@ -249,8 +253,8 @@ export default class Filter {
           !extensionIsEnabled &&
           BrowserEvents.StorageOnChanged === browserEvent
         ) {
-          this.restoreVideosVisibility();
-          this.cleanUp();
+          void this.filterAllLoadedVideos();
+          await this.cleanUp();
         }
       },
     );
