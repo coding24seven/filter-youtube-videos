@@ -8,11 +8,11 @@ export function getContentsElement() {
 }
 
 export function waitForAndGetContentsElement(): Promise<HTMLElement> {
-  return new Promise((resolve, _reject) => {
+  return new Promise((resolve) => {
     let contentsElement = getContentsElement();
 
     if (contentsElement) {
-      console.log(
+      console.info(
         "videos container found, already in the DOM:",
         contentsElement,
       );
@@ -22,7 +22,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
       return;
     }
 
-    console.log(
+    console.info(
       "videos container element not in the DOM yet. Waiting for it to load...",
     );
 
@@ -33,7 +33,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
         return;
       }
 
-      console.log("videos container has just loaded:", contentsElement);
+      console.info("videos container has just loaded:", contentsElement);
 
       observer.deactivate();
       eventBusForObserver.removeEventListener(...args);
@@ -50,6 +50,45 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
     eventBusForObserver.addEventListener(...args);
 
     const observer = new Observer(document.body, eventBusForObserver);
+    observer.activate();
+  });
+}
+
+export async function waitForContentsElementToStopMutating(waitMs: number) {
+  return new Promise(async (resolve) => {
+    const fallbackTimeout = setTimeout(() => {
+      console.info("Contents element is not mutating. Returning...");
+      observer.deactivate();
+      eventBusForObserver.removeEventListener(...args);
+      resolve(false);
+    }, waitMs); /* in case observer handler does not fire */
+
+    const contentsElement = await waitForAndGetContentsElement();
+    let observerTimeout: NodeJS.Timeout;
+
+    const handler: EmittedNodeEventHandler = (_event) => {
+      clearTimeout(fallbackTimeout);
+
+      clearTimeout(observerTimeout);
+      observerTimeout = setTimeout(() => {
+        console.info(
+          `Contents element has stopped mutating for ${waitMs}ms. Returning...`,
+        );
+        observer.deactivate();
+        eventBusForObserver.removeEventListener(...args);
+        resolve(true);
+      }, waitMs);
+    };
+
+    const eventBusForObserver = new EventTarget();
+    const args: [string, EventListener] = [
+      customEvents.observerEmittedNode,
+      handler as EventListener,
+    ];
+
+    eventBusForObserver.addEventListener(...args);
+
+    const observer = new Observer(contentsElement, eventBusForObserver);
     observer.activate();
   });
 }

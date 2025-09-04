@@ -13,7 +13,7 @@ function watchCopyModifiedFiles() {
 
   fs.watch("src", { recursive: true }, (eventType, filePath) => {
     if (!filePath?.match(fileTypes)) {
-      console.log(
+      console.info(
         `watch-copy-modified-files: ignored: ${filePath || "unknown file"})`,
       );
 
@@ -28,7 +28,7 @@ function watchCopyModifiedFiles() {
     debounceMap.set(
       filePath,
       setTimeout(() => {
-        console.log(`Event: ${eventType}, File: ${filePath || "unknown"}`);
+        console.info(`Event: ${eventType}, File: ${filePath || "unknown"}`);
 
         const srcPath = path.join("src", filePath);
         const destPath = path.join(outputDir, filePath);
@@ -40,9 +40,9 @@ function watchCopyModifiedFiles() {
             const destDir = path.dirname(destPath);
             fs.mkdirSync(destDir, { recursive: true });
 
-            console.log(`Copying ${srcPath} to ${destPath}`);
+            console.info(`Copying ${srcPath} to ${destPath}`);
             fs.copyFileSync(srcPath, destPath);
-            console.log(`Copied ${filePath}`);
+            console.info(`Copied ${filePath}`);
           } else {
             console.warn(`Source file ${srcPath} does not exist`);
           }
@@ -54,7 +54,7 @@ function watchCopyModifiedFiles() {
     );
   });
 
-  console.log(
+  console.info(
     "watch-copy-modified-files: Watching for non-TypeScript changes in src directory...",
   );
 }

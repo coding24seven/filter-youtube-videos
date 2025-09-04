@@ -9,6 +9,7 @@ import {
   getVideoCount,
   setElementVisibility,
   waitForAndGetContentsElement,
+  waitForContentsElementToStopMutating,
 } from "./elements";
 import { MessagePayload } from "../browser-api/types";
 import { getCurrentYouTubePageType } from "../utils/youtube";
@@ -42,20 +43,18 @@ export default class Filter {
     this.establishCommunicationWithBackground();
   }
 
-  private async cleanUp() {
-    console.log("Cleaning up");
+  private cleanUp() {
     this.cleanUpProcedures.forEach((procedure) => {
       procedure();
     });
 
     this.currentYouTubePageType = null;
     this.videoElementsProcessedByObserver.clear();
-    void this.updateVideoCount();
-    void this.updateHiddenVideoCount();
+    console.info("Cleaned up");
   }
 
   private async run(currentYouTubePageType?: YouTubePageTypes) {
-    console.log("*** Running filter ***");
+    console.info("*** Running filter ***");
     const contentsElement = await waitForAndGetContentsElement();
 
     const { watchedFilterEnabled, membersOnlyFilterEnabled } =
@@ -189,25 +188,23 @@ export default class Filter {
         this.showVideo(videoElement);
       }
     }
+
+    this.updateHiddenVideoCount();
   }
 
   /* url changed within a tab, by clicking on link or reloading page */
+  /* erroneously, YouTube dispatches this event before DOM mutations have completed, which means that at this point the contents element may contain stale video elements from previous url, and video count is usually incorrect until the DOM stops mutating */
   private setUpYtNavigateFinishEventListener() {
     const handler = async (event: Event) => {
-      console.log(youTubeEvents.ytNavigateFinish, "event:", event);
+      console.info(youTubeEvents.ytNavigateFinish, "event:", event);
 
       if (!(await isExtensionEnabled())) {
         return;
       }
 
-      console.log("before cleanup", getContentsElement()?.childElementCount);
       void this.filterAllLoadedVideos();
-      await this.cleanUp();
-      // todo: optimize
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      console.log("after cleanup", getContentsElement()?.childElementCount);
-
+      this.cleanUp();
+      await waitForContentsElementToStopMutating(100);
       void this.run();
     };
 
@@ -225,9 +222,9 @@ export default class Filter {
           currentYouTubePageType,
         } = message;
 
-        console.log("Extension is enabled:", extensionIsEnabled);
-        console.log("tabId:", tabId);
-        console.log("browser event:", browserEvent);
+        console.info("Extension is enabled:", extensionIsEnabled);
+        console.info("tabId:", tabId);
+        console.info("browser event:", browserEvent);
 
         if (
           extensionIsEnabled &&
@@ -236,7 +233,7 @@ export default class Filter {
             BrowserEvents.TabsOnActivated /* tab clicked */,
           ].includes(browserEvent)
         ) {
-          await this.cleanUp();
+          this.cleanUp();
           void this.run(currentYouTubePageType);
 
           return;
@@ -256,7 +253,7 @@ export default class Filter {
           BrowserEvents.StorageOnChanged === browserEvent
         ) {
           void this.filterAllLoadedVideos();
-          await this.cleanUp();
+          this.cleanUp();
         }
       },
     );

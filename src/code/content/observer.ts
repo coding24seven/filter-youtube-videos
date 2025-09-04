@@ -38,11 +38,11 @@ export default class Observer {
       childList: true,
       subtree: true,
     });
-    console.log("Observer started on element:", this.observedElement);
+    console.info("Observer started on element:", this.observedElement);
   }
 
   public deactivate() {
     this.mutationObserver.disconnect();
-    console.log("Observer disconnected");
+    console.info("Observer disconnected");
   }
 }
