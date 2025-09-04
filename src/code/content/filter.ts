@@ -3,14 +3,21 @@ import Observer, { EmittedNodeEventHandler } from "./observer";
 import { YouTubePageTypes } from "./types";
 import {
   getContentsElement,
+  getHiddenVideoCount,
   getMembersOnlyBadgeElement,
   getProgressBarElementByPageType,
+  getVideoCount,
   setElementVisibility,
   waitForAndGetContentsElement,
 } from "./elements";
 import { MessagePayload } from "../browser-api/types";
-import { getCurrentYouTubePageType } from "../utils";
-import { isExtensionEnabled, updateHiddenVideosCount } from "../browser-api";
+import { getCurrentYouTubePageType } from "../utils/youtube";
+import {
+  isExtensionEnabled,
+  updateHiddenVideoCount,
+  updateVideoCount,
+} from "../browser-api";
+import { debounce } from "../utils";
 
 export interface FiltersState {
   watchedFilterEnabled: boolean;
@@ -22,8 +29,12 @@ export default class Filter {
   watchedFilterEnabled: boolean = true;
   membersOnlyFilterEnabled: boolean = true;
   videoElementsProcessedByObserver = new Set();
-  hiddenVideosCount = 0;
-  incrementHiddenVideosCount = this.incrementHiddenVideosCountDebounced();
+  updateVideoCount = debounce(() => {
+    void updateVideoCount(getVideoCount());
+  }, 100);
+  updateHiddenVideoCount = debounce(() => {
+    void updateHiddenVideoCount(getHiddenVideoCount());
+  }, 100);
   cleanUpProcedures: (() => void)[] = [];
 
   public constructor(public filtersState: FiltersState) {
@@ -39,8 +50,8 @@ export default class Filter {
 
     this.currentYouTubePageType = null;
     this.videoElementsProcessedByObserver.clear();
-    this.hiddenVideosCount = 0;
-    return updateHiddenVideosCount(0);
+    void this.updateVideoCount();
+    void this.updateHiddenVideoCount();
   }
 
   private async run(currentYouTubePageType?: YouTubePageTypes) {
@@ -120,6 +131,7 @@ export default class Filter {
     }
 
     this.videoElementsProcessedByObserver.add(videoElement);
+    this.updateVideoCount();
 
     if (this.shouldHideVideo(videoElement)) {
       this.hideVideo(videoElement);
@@ -149,25 +161,13 @@ export default class Filter {
     return !!(progressBarElement || membersOnlyBadgeElement);
   }
 
-  private incrementHiddenVideosCountDebounced() {
-    let timeout: NodeJS.Timeout;
-
-    return () => {
-      this.hiddenVideosCount++;
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        void updateHiddenVideosCount(this.hiddenVideosCount);
-      }, 100);
-    };
-  }
-
   private hideVideo(videoElement: HTMLElement) {
-    this.incrementHiddenVideosCount();
+    this.updateHiddenVideoCount();
     setElementVisibility(videoElement, true);
   }
 
   private showVideo(videoElement: HTMLElement) {
-    // todo: decrement count if not resetting all to 0
+    this.updateHiddenVideoCount();
     setElementVisibility(videoElement, false);
   }
 
@@ -179,6 +179,8 @@ export default class Filter {
 
     const videoElements =
       contentsElement.children as HTMLCollectionOf<HTMLElement>;
+
+    this.updateVideoCount();
 
     for (const videoElement of videoElements) {
       if (extensionIsEnabled && this.shouldHideVideo(videoElement)) {

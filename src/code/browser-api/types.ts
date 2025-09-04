@@ -4,7 +4,8 @@ import { BrowserEvents } from "../content/events";
 
 export interface State {
   extensionIsEnabled: boolean | undefined;
-  hiddenVideosCount: number | undefined;
+  videoCount: number | undefined;
+  hiddenVideoCount: number | undefined;
 }
 
 export interface MessagePayload {

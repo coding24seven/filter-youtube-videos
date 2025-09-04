@@ -26,7 +26,7 @@ export function waitForAndGetContentsElement(): Promise<HTMLElement> {
       "videos container element not in the DOM yet. Waiting for it to load...",
     );
 
-    const handler: EmittedNodeEventHandler = (event) => {
+    const handler: EmittedNodeEventHandler = (_event) => {
       let contentsElement = getContentsElement();
 
       if (!contentsElement) {
@@ -72,7 +72,6 @@ export function getMembersOnlyBadgeElement(videoElement: HTMLElement) {
 }
 
 export function setElementVisibility(element: HTMLElement, hide: boolean) {
-
   if (hide) {
     element.style.display = "none";
   } else {
@@ -82,4 +81,23 @@ export function setElementVisibility(element: HTMLElement, hide: boolean) {
 
 export function isElementHidden(element: HTMLElement) {
   return element.style.display === "none";
+}
+
+export function getVideoCount() {
+  return getContentsElement()?.childElementCount || 0;
+}
+
+export function getHiddenVideoCount() {
+  const contentsElement = getContentsElement();
+  const initialValue = 0;
+
+  if (!contentsElement) {
+    return initialValue;
+  }
+
+  return [
+    ...(contentsElement.children as HTMLCollectionOf<HTMLElement>),
+  ].reduce((acc: number, element) => {
+    return isElementHidden(element) ? ++acc : acc;
+  }, initialValue);
 }

@@ -1,8 +1,9 @@
 import {
   contentShouldRunOnCurrentPage,
-  getHiddenVideosCount,
+  loadHiddenVideoCount,
   isExtensionEnabled,
   toggleExtensionIsEnabled,
+  loadVideoCount,
 } from "../browser-api";
 import { selectors } from "./selectors";
 
@@ -28,8 +29,10 @@ async function addEventListeners(buttonElement: HTMLElement) {
         buttonElement,
         extensionIsEnabled: changes.extensionIsEnabled.newValue,
       });
-    } else if (changes.hiddenVideosCount) {
-      await setHiddenVideosCountText(changes.hiddenVideosCount.newValue);
+    } else if (changes.videoCount) {
+      await setVideoCountText(changes.videoCount.newValue);
+    } else if (changes.hiddenVideoCount) {
+      await setHiddenVideoCountText(changes.hiddenVideoCount.newValue);
     }
   });
 }
@@ -52,7 +55,8 @@ async function getPopupElement() {
     extensionShouldNotRunElement.style.display = "none";
     toggleFilterButton.style.display = "block";
 
-    await setHiddenVideosCountText((await getHiddenVideosCount()) || 0);
+    await setVideoCountText((await loadVideoCount()) || 0);
+    await setHiddenVideoCountText((await loadHiddenVideoCount()) || 0);
     await setButtonText({ buttonElement: toggleFilterButton });
 
     return toggleFilterButton;
@@ -64,18 +68,30 @@ async function getPopupElement() {
   }
 }
 
-async function setHiddenVideosCountText(count: number) {
-  const hiddenVideosCountElement = document.getElementById(
-    "hidden-videos-count",
-  );
+async function setVideoCountText(count: number) {
+  const selector = "video-count";
+  const videoCountElement = document.getElementById(selector);
 
-  if (!hiddenVideosCountElement) {
-    console.error(`Element with id 'hidden-videos-count' not found`);
+  if (!videoCountElement) {
+    console.error(`Element with id ${selector} not found`);
 
     return;
   }
 
-  hiddenVideosCountElement.textContent = `Videos Hidden: ${count}`;
+  videoCountElement.textContent = `Videos total: ${count}`;
+}
+
+async function setHiddenVideoCountText(count: number) {
+  const selector = "hidden-video-count";
+  const hiddenVideoCountElement = document.getElementById(selector);
+
+  if (!hiddenVideoCountElement) {
+    console.error(`Element with id ${selector} not found`);
+
+    return;
+  }
+
+  hiddenVideoCountElement.textContent = `Videos Hidden: ${count}`;
 }
 
 async function setButtonText({
@@ -84,7 +100,7 @@ async function setButtonText({
 }: {
   buttonElement: HTMLElement;
   extensionIsEnabled?: boolean | undefined;
-  hiddenVideosCount?: number;
+  hiddenVideoCount?: number;
 }) {
   const enableText = "Hide Unwanted Videos";
   const disableText = "Show All Videos";

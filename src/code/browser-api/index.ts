@@ -1,4 +1,4 @@
-import { getCurrentYouTubePageType } from "../utils";
+import { getCurrentYouTubePageType } from "../utils/youtube";
 import {
   MessagePayload,
   State,
@@ -8,7 +8,7 @@ import {
 import { BrowserEvents } from "../content/events";
 import Tab = browser.tabs.Tab;
 
-export function getState() {
+export function loadState() {
   return browser.storage.local.get() as Promise<State>;
 }
 
@@ -17,21 +17,29 @@ export async function setState(state: Partial<State>) {
 }
 
 export async function isExtensionEnabled() {
-  return !!(await getState()).extensionIsEnabled;
+  return !!(await loadState()).extensionIsEnabled;
 }
 
 export async function toggleExtensionIsEnabled() {
-  void setState({
+  return setState({
     extensionIsEnabled: !(await isExtensionEnabled()),
   });
 }
 
-export async function getHiddenVideosCount() {
-  return (await getState()).hiddenVideosCount;
+export async function loadVideoCount() {
+  return (await loadState()).videoCount;
 }
 
-export function updateHiddenVideosCount(hiddenVideosCount: number) {
-  return setState({ hiddenVideosCount });
+export function updateVideoCount(videoCount: number) {
+  return setState({ videoCount });
+}
+
+export async function loadHiddenVideoCount() {
+  return (await loadState()).hiddenVideoCount;
+}
+
+export function updateHiddenVideoCount(hiddenVideoCount: number) {
+  return setState({ hiddenVideoCount });
 }
 
 export async function queryActiveTab() {
