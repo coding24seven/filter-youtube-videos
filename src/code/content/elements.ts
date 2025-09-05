@@ -58,6 +58,7 @@ export async function waitForContentsElementToStopMutating(waitMs: number) {
   return new Promise(async (resolve) => {
     const fallbackTimeout = setTimeout(() => {
       console.info("Contents element is not mutating. Returning...");
+      clearTimeout(observerTimeout);
       observer.deactivate();
       eventBusForObserver.removeEventListener(...args);
       resolve(false);
@@ -68,8 +69,8 @@ export async function waitForContentsElementToStopMutating(waitMs: number) {
 
     const handler: EmittedNodeEventHandler = (_event) => {
       clearTimeout(fallbackTimeout);
-
       clearTimeout(observerTimeout);
+
       observerTimeout = setTimeout(() => {
         console.info(
           `Contents element has stopped mutating for ${waitMs}ms. Returning...`,
