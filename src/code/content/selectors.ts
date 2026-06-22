@@ -24,10 +24,13 @@ const progressBar = [progressBarSegment, progressId].join(', ');
 const membersOnlyBadgeSupportedRenderer = 'p.ytd-badge-supported-renderer';
 const membersOnlyBadgeSupportedRendererElement = 'ytd-badge-supported-renderer';
 const commerceBadge = 'badge-shape.yt-badge-shape.yt-badge-shape--commerce';
+const membersOnlyBadge2026Ui = 'badge-shape.ytBadgeShapeCommerce';
+
 const membersOnlyBadge = [
   membersOnlyBadgeSupportedRenderer,
   commerceBadge,
   membersOnlyBadgeSupportedRendererElement,
+  membersOnlyBadge2026Ui,
 ].join(', ');
 
 const chipsContainer = 'iron-selector#chips';
