@@ -26,7 +26,7 @@ A browser extension that filters out watched and members-only YouTube videos, ke
 - Run `npm start` or `./ddstart` for docker-desktop on Linux
 - Load the extension in your browser:
   - Firefox: Go to `about:debugging#/runtime/this-firefox` and select "Load Temporary Add-on."
-- Create a `feature/`, `bugfix/`, etc. branch, where you'll commit your code
+- Create a `feature/`, `bugfix/`, etc. branch from the `main` base, where you'll commit your code
 
 ## Build and Package (for Mozilla code reviewers)
 

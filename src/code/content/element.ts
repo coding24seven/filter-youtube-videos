@@ -57,7 +57,7 @@ export default class Element {
   }
 
   public get videoElementTagName() {
-    return selectors.video[this.pageType];
+    return selectors.video;
   }
 
   public get videos() {
@@ -93,7 +93,7 @@ export default class Element {
   }
 
   public isVideo(element: HTMLElement) {
-    return element.matches(selectors.video[this.pageType]);
+    return element.matches(selectors.video);
   }
 
   public waitForAndGetAndSetContents(): Promise<HTMLElement> {
