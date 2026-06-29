@@ -170,7 +170,7 @@ export default class Filter {
         break;
       case 'removedNodes':
         const triggeringElementIsVideo = triggeringElement.matches(
-          selectors.video[this.youTubePageType],
+          selectors.video,
         );
 
         if (triggeringElementIsVideo) {

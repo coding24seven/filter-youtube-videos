@@ -1,21 +1,10 @@
-import { YouTubePageTypes } from './types';
-
-const {
-  HomePage,
-  SubscriptionsPage,
-  WatchPage,
-  ChannelHomePage,
-  ChannelFeaturedPage,
-  ChannelVideosPage,
-  ChannelStreamsPage,
-} = YouTubePageTypes;
-
 const contents = '#contents';
 
-const watchPageVideo = 'yt-lockup-view-model';
-const channelHomePageVideo = 'ytd-grid-video-renderer';
-const otherPagesVideo =
-  'ytd-rich-item-renderer:not([is-post]):not([is-slim-media])';
+const videoRenderers = [
+  'ytd-grid-video-renderer',
+  'ytd-rich-item-renderer',
+  'yt-lockup-view-model',
+].join(', ');
 
 const progressBarSegment = '*[class*="ProgressBarSegment" i][style*="width"]';
 const progressId = '#progress[style*="width"]';
@@ -45,13 +34,5 @@ export const selectors = {
   progressBar,
   membersOnlyBadge,
   chips: chipsContainer,
-  video: {
-    [HomePage]: otherPagesVideo,
-    [SubscriptionsPage]: otherPagesVideo,
-    [WatchPage]: watchPageVideo,
-    [ChannelHomePage]: channelHomePageVideo,
-    [ChannelFeaturedPage]: channelHomePageVideo,
-    [ChannelVideosPage]: otherPagesVideo,
-    [ChannelStreamsPage]: otherPagesVideo,
-  },
+  video: videoRenderers,
 };
